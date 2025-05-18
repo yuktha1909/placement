@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     final response = await http.post(
-      Uri.parse('http://localhost:5000/login'),
+      Uri.parse('http://192.168.175.14:5000/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': emailController.text.trim(),
@@ -41,29 +41,25 @@ class _LoginPageState extends State<LoginPage> {
       await prefs.setString('token', token);
       await prefs.setString('role', role);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login successful – Role: $role')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login successful – Role: $role')));
 
       if (role == 'admin') {
         // Navigate to Admin Dashboard with real token
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => AdminDashboardPage(token: token),
-          ),
+          MaterialPageRoute(builder: (_) => AdminDashboardPage(token: token)),
         );
       } else {
         // Navigate to User Dashboard
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => UserDashboardPage(),
-          ),
+          MaterialPageRoute(builder: (_) => UserDashboardPage()),
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${response.body}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login failed: ${response.body}')));
     }
   }
 
@@ -98,17 +94,13 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 20),
             isLoading
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: login,
-                    child: const Text('Login'),
-                  ),
+                : ElevatedButton(onPressed: login, child: const Text('Login')),
             TextButton(
               onPressed: () => Navigator.pushNamed(context, '/register'),
               child: const Text("Don't have an account? Register"),
             ),
             TextButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/forgot-password'),
+              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
               child: const Text("Forgot Password?"),
             ),
           ],

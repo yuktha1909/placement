@@ -1,14 +1,15 @@
-// File: lib/admin_dashboard_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-// Import your existing pages
 import 'add_placement_page.dart';
 import 'view_placements_page.dart';
 import 'update_placement_page.dart';
 import 'placement_events_page.dart';
+import 'add_student_page.dart';
+import 'view_student_page.dart';
+import 'update_status_screen.dart';
+import 'select_student_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final String token;
@@ -22,11 +23,41 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   List<Map<String, dynamic>> _placements = [];
   bool _isLoading = true;
   String? _error;
+  Map<String, dynamic> dashboardData = {
+    'totalStudents': 0,
+    'totalCompanies': 0,
+    'ongoingDrives': 0,
+    'placedStudents': 0,
+    'placementPercentage': 0,
+  };
 
   @override
   void initState() {
     super.initState();
+    _loadDashboardStats();
     _loadPlacements();
+  }
+
+  Future<void> _loadDashboardStats() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.175.14:5000/admin/dashboard'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          dashboardData = jsonDecode(response.body);
+        });
+      } else {
+        setState(() {
+          _error = 'Failed to load dashboard stats';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Dashboard error: $e';
+      });
+    }
   }
 
   Future<void> _loadPlacements() async {
@@ -36,7 +67,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     });
     try {
       final resp = await http.get(
-        Uri.parse('http://localhost:5000/placements'),
+        Uri.parse('http://192.168.175.14:5000/placements'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
       if (resp.statusCode == 200) {
@@ -45,11 +76,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           _placements = data.map((e) => Map<String, dynamic>.from(e)).toList();
         });
       } else {
-        throw Exception('Server returned ${resp.statusCode}');
+        setState(() {
+          _error = 'Failed to load placements: ${resp.statusCode}';
+        });
       }
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = 'Error loading placements: $e';
       });
     } finally {
       setState(() {
@@ -61,7 +94,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Future<void> _deletePlacement(int id) async {
     try {
       final resp = await http.delete(
-        Uri.parse('http://localhost:5000/placements/$id'),
+        Uri.parse('http://192.168.175.14:5000/placements/$id'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
       if (resp.statusCode == 200) {
@@ -69,12 +102,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           _placements.removeWhere((p) => p['id'] == id);
         });
       } else {
-        throw Exception('Delete failed: ${resp.statusCode}');
+        setState(() {
+          _error = 'Delete failed: ${resp.statusCode}';
+        });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting: $e')),
-      );
+      setState(() {
+        _error = 'Error deleting placement: $e';
+      });
     }
   }
 
@@ -83,7 +118,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         DrawerHeader(
           decoration: BoxDecoration(color: Colors.blue),
-          child: Text('Admin Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
+          child: Text(
+            'Admin Menu',
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
         ),
         ListTile(
           leading: Icon(Icons.add),
@@ -91,7 +129,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           onTap: () {
             Navigator.push(
               ctx,
-              MaterialPageRoute(builder: (_) => AddPlacementPage(token: widget.token)),
+              MaterialPageRoute(
+                builder: (_) => AddPlacementPage(token: widget.token),
+              ),
             ).then((_) => _loadPlacements());
           },
         ),
@@ -101,7 +141,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           onTap: () {
             Navigator.push(
               ctx,
-              MaterialPageRoute(builder: (_) => ViewPlacementsPage(token: widget.token)),
+              MaterialPageRoute(
+                builder: (_) => ViewPlacementsPage(token: widget.token),
+              ),
             );
           },
         ),
@@ -111,7 +153,45 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           onTap: () {
             Navigator.push(
               ctx,
-              MaterialPageRoute(builder: (_) => PlacementEventsPage(token: widget.token)),
+              MaterialPageRoute(
+                builder: (_) => PlacementEventsPage(token: widget.token),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.person_add),
+          title: Text('Add Student'),
+          onTap: () {
+            Navigator.push(
+              ctx,
+              MaterialPageRoute(
+                builder: (_) => AddStudentPage(token: widget.token),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.group),
+          title: Text('View Students'),
+          onTap: () {
+            Navigator.push(
+              ctx,
+              MaterialPageRoute(
+                builder: (_) => ViewStudentsPage(token: widget.token),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.update),
+          title: Text('Update Status'),
+          onTap: () {
+            Navigator.push(
+              ctx,
+              MaterialPageRoute(
+                builder: (_) => SelectStudentPage(token: widget.token),
+              ),
             );
           },
         ),
@@ -125,16 +205,48 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
+  Widget _buildStatCard(String title, String value, Color color) {
+    return Card(
+      elevation: 4,
+      child: Container(
+        padding: EdgeInsets.all(16),
+        width: 160,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Admin Dashboard'),
         leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
+          builder:
+              (ctx) => IconButton(
+                icon: Icon(Icons.menu),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
         ),
       ),
       drawer: Drawer(child: _buildMenu(context)),
@@ -150,14 +262,53 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   child: _buildMenu(context),
                 ),
               Expanded(
-                child: _isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : (_error != null
-                        ? Center(child: Text('Error: $_error'))
-                        : (_placements.isEmpty
-                            ? Center(child: Text('No placements found.'))
-                            : ListView.builder(
-                                padding: EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _buildStatCard(
+                            "Total Students",
+                            dashboardData['totalStudents'].toString(),
+                            Colors.blue,
+                          ),
+                          _buildStatCard(
+                            "Total Companies",
+                            dashboardData['totalCompanies'].toString(),
+                            Colors.green,
+                          ),
+                          _buildStatCard(
+                            "Ongoing Drives",
+                            dashboardData['ongoingDrives'].toString(),
+                            Colors.orange,
+                          ),
+                          _buildStatCard(
+                            "Placed Students",
+                            dashboardData['placedStudents'].toString(),
+                            Colors.purple,
+                          ),
+                          _buildStatCard(
+                            "Placement %",
+                            "${dashboardData['placementPercentage']}%",
+                            Colors.red,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      _isLoading
+                          ? Center(child: CircularProgressIndicator())
+                          : (_error != null
+                              ? Text('Error: $_error')
+                              : _placements.isEmpty
+                              ? Text('No placements found.')
+                              : ListView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
                                 itemCount: _placements.length,
                                 itemBuilder: (ctx, i) {
                                   final p = _placements[i];
@@ -165,32 +316,54 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                     child: ListTile(
                                       title: Text(p['title']),
                                       subtitle: Text(p['date']),
-                                      onTap: () => Navigator.push(
-                                        ctx,
-                                        MaterialPageRoute(
-                                          builder: (_) => UpdatePlacementPage(
-                                            token: widget.token,
-                                            placement: p,
-                                          ),
-                                        ),
-                                      ).then((_) => _loadPlacements()),
-                                      trailing: IconButton(
-                                        icon: Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () async {
-                                          final confirm = await showDialog<bool>(
-                                            context: ctx,
-                                            builder: (_) => AlertDialog(
-                                              title: Text('Delete Placement'),
-                                              content: Text('Delete "${p['title']}"?'),
-                                              actions: [
-                                                TextButton(
-                                                    onPressed: () => Navigator.pop(ctx, false),
-                                                    child: Text('Cancel')),
-                                                TextButton(
-                                                    onPressed: () => Navigator.pop(ctx, true),
-                                                    child: Text('Delete')),
-                                              ],
+                                      onTap:
+                                          () => Navigator.push(
+                                            ctx,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (_) => UpdatePlacementPage(
+                                                    token: widget.token,
+                                                    placement: p,
+                                                  ),
                                             ),
+                                          ).then((_) => _loadPlacements()),
+                                      trailing: IconButton(
+                                        icon: Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () async {
+                                          final confirm = await showDialog<
+                                            bool
+                                          >(
+                                            context: ctx,
+                                            builder:
+                                                (_) => AlertDialog(
+                                                  title: Text(
+                                                    'Delete Placement',
+                                                  ),
+                                                  content: Text(
+                                                    'Delete "${p['title']}"?',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed:
+                                                          () => Navigator.pop(
+                                                            ctx,
+                                                            false,
+                                                          ),
+                                                      child: Text('Cancel'),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed:
+                                                          () => Navigator.pop(
+                                                            ctx,
+                                                            true,
+                                                          ),
+                                                      child: Text('Delete'),
+                                                    ),
+                                                  ],
+                                                ),
                                           );
                                           if (confirm == true) {
                                             _deletePlacement(p['id']);
@@ -200,7 +373,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                     ),
                                   );
                                 },
-                              ))),
+                              )),
+                    ],
+                  ),
+                ),
               ),
             ],
           );

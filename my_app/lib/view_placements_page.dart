@@ -11,7 +11,7 @@ class ViewPlacementsPage extends StatelessWidget {
 
   Future<List<Map<String, dynamic>>> fetchPlacements() async {
     final response = await http.get(
-      Uri.parse('http://localhost:5000/placements'),
+      Uri.parse('http://192.168.175.14:5000/placements'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode != 200) {

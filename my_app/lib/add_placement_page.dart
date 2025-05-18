@@ -36,7 +36,7 @@ class _AddPlacementPageState extends State<AddPlacementPage> {
     setState(() => isLoading = true);
 
     final response = await http.post(
-      Uri.parse('http://localhost:5000/placements'),
+      Uri.parse('http://192.168.175.14:5000/placements'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${widget.token}',

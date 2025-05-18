@@ -59,7 +59,7 @@ class _UpdatePlacementPageState extends State<UpdatePlacementPage> {
     };
 
     final resp = await http.put(
-      Uri.parse('http://localhost:5000/placements/${widget.placement['id']}'),
+      Uri.parse('http://192.168.175.14:5000/placements/${widget.placement['id']}'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${widget.token}',
@@ -78,7 +78,7 @@ class _UpdatePlacementPageState extends State<UpdatePlacementPage> {
 
   Future<void> _deletePlacement() async {
     final resp = await http.delete(
-      Uri.parse('http://localhost:5000/placements/${widget.placement['id']}'),
+      Uri.parse('http://192.168.175.14:5000/placements/${widget.placement['id']}'),
       headers: {'Authorization': 'Bearer ${widget.token}'},
     );
 

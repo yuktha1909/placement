@@ -20,7 +20,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     setState(() => isLoading = true);
 
     final response = await http.post(
-      Uri.parse('http://localhost:5000/reset-password'),
+      Uri.parse('http://192.168.175.14:5000/reset-password'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${widget.token}',

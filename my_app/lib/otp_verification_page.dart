@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'reset_password_page.dart'; // Assuming this page exists
+import 'reset_password_page.dart'; 
 
 class OTPVerificationPage extends StatefulWidget {
-  final String email; // Pass email from the ForgotPasswordPage
+  final String email; 
   const OTPVerificationPage({super.key, required this.email});
 
   @override
@@ -21,7 +21,7 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     });
 
     final response = await http.post(
-      Uri.parse('http://localhost:5000/verify-otp'),
+      Uri.parse('http://192.168.175.14:5000/verify-otp'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': widget.email, 'otp': otpController.text}),
     );
@@ -33,13 +33,13 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
-      // On success, navigate to reset password page
+     
       Navigator.push(
         context,
         MaterialPageRoute(
           builder:
               (context) => ResetPasswordPage(
-                token: data['token'], // Pass the token to reset password page
+                token: data['token'], 
               ),
         ),
       );

@@ -196,6 +196,52 @@ def reset_password():
         return jsonify(message='Password successfully reset'), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
+    
+@app.route('/admin/dashboard', methods=['GET'])
+@jwt_required()
+def get_dashboard_data():
+    cursor = mysql.connection.cursor()
+
+    # Total students
+    cursor.execute("SELECT COUNT(*) FROM students")
+    total_students = cursor.fetchone()[0]
+
+    # Latest placement status per student using a subquery
+    cursor.execute("""
+        SELECT COUNT(*) FROM (
+            SELECT sh.student_id, sh.status
+            FROM student_status_history sh
+            INNER JOIN (
+                SELECT student_id, MAX(changed_at) as latest
+                FROM student_status_history
+                GROUP BY student_id
+            ) latest_status ON sh.student_id = latest_status.student_id AND sh.changed_at = latest_status.latest
+            WHERE sh.status = 'Placed'
+        ) AS placed
+    """)
+    placed_students = cursor.fetchone()[0]
+
+    # Placement percentage
+    placement_percentage = (placed_students / total_students * 100) if total_students > 0 else 0
+
+    # Ongoing drives: placements with deadline in the future
+    cursor.execute("SELECT COUNT(*) FROM placements WHERE deadline >= CURDATE()")
+    ongoing_drives = cursor.fetchone()[0]
+
+    # Total companies (distinct)
+    cursor.execute("SELECT COUNT(DISTINCT company) FROM placements")
+    total_companies = cursor.fetchone()[0]
+
+    cursor.close()
+
+    return jsonify({
+        "totalStudents": total_students,
+        "placedStudents": placed_students,
+        "placementPercentage": round(placement_percentage, 2),
+        "ongoingDrives": ongoing_drives,
+        "totalCompanies": total_companies
+    }), 200
+
 
 # --- Fetch All Placements ---
 @app.route('/placements', methods=['GET'])
@@ -231,8 +277,8 @@ def add_placement():
     data = request.get_json()
     fields = ['title','date','company','location','package','eligibility','deadline','description']
     if not all(data.get(f) for f in fields[:-1]):  # description may be empty
-        return jsonify(error='All required fields missing'), 400
-
+        return jsonify(error='Missing required fields'), 400
+    
     vals = tuple(data.get(f) for f in fields)
     cursor = mysql.connection.cursor()
     cursor.execute(f'''
@@ -286,6 +332,180 @@ def delete_placement(id):
     mysql.connection.commit()
     cursor.close()
     return jsonify(message='Placement deleted'), 200
+
+#----Get a student details----
+@app.route('/students', methods=['GET'])
+@jwt_required()
+def get_students():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify(error='Admins only'), 403
+
+    cursor = mysql.connection.cursor()
+    cursor.execute('SELECT id, name, email, phone, address, course, year, resume_link, status FROM students')
+    rows = cursor.fetchall()
+    cursor.close()
+
+    # Convert the rows into dictionaries
+    students = []
+    for row in rows:
+        students.append({
+            'id': row[0],
+            'name': row[1],
+            'email': row[2],
+            'phone': row[3],
+            'address': row[4],
+            'course': row[5],
+            'year': row[6],
+            'resume_link': row[7],
+            'status': row[8]
+        })
+
+    return jsonify(students=students), 200
+
+#----Add student----
+@app.route('/students', methods=['POST'])
+@jwt_required()
+def add_student():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify(error='Admins only'), 403
+
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    phone = data.get('phone')
+    address = data.get('address')
+    course = data.get('course')
+    year = data.get('year')
+    resume_link = data.get('resume_link')
+
+    if not name or not email:
+        return jsonify(error='Name and email are required'), 400
+
+    cursor = mysql.connection.cursor()
+    # Check if email already exists (optional, but good practice)
+    cursor.execute('SELECT id FROM students WHERE email = %s', (email,))
+    if cursor.fetchone():
+        cursor.close()
+        return jsonify(error='Student with this email already exists'), 409
+
+    cursor.execute(
+        '''INSERT INTO students (name, email, phone, address, course, year, resume_link)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)''',
+        (name, email, phone, address, course, year, resume_link)
+    )
+    mysql.connection.commit()
+    cursor.close()
+
+    return jsonify(message='Student added successfully'), 201
+
+# --- Update Student Information (admin only) ---
+@app.route('/students/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_student(id):
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify(error='Admins only'), 403
+
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    phone = data.get('phone')
+    address = data.get('address')
+    course = data.get('course')
+    year = data.get('year')
+    resume_link = data.get('resume_link')
+
+    if not name or not email:
+        return jsonify(error='Name and email are required'), 400
+
+    cursor = mysql.connection.cursor()
+    cursor.execute('SELECT 1 FROM students WHERE id=%s', (id,))
+    if not cursor.fetchone():
+        cursor.close()
+        return jsonify(error='Student not found'), 404
+
+    cursor.execute(
+        '''UPDATE students
+           SET name=%s, email=%s, phone=%s, address=%s, course=%s, year=%s, resume_link=%s
+           WHERE id=%s''',
+        (name, email, phone, address, course, year, resume_link, id)
+    )
+    mysql.connection.commit()
+    cursor.close()
+
+    return jsonify(message='Student updated successfully'), 200
+
+@app.route('/students/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_student(id):
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify(error='Admins only'), 403
+
+    cursor = mysql.connection.cursor()
+
+    # 1) Check student exists
+    cursor.execute('SELECT 1 FROM students WHERE id=%s', (id,))
+    if not cursor.fetchone():
+        cursor.close()
+        return jsonify(error='Student not found'), 404
+
+    try:
+        # 2) Delete any status history
+        cursor.execute(
+            'DELETE FROM student_status_history WHERE student_id = %s',
+            (id,)
+        )
+
+        # 3) Now delete the student
+        cursor.execute('DELETE FROM students WHERE id=%s', (id,))
+        mysql.connection.commit()
+
+    except Exception as e:
+        mysql.connection.rollback()
+        cursor.close()
+        return jsonify(error='Deletion failed', details=str(e)), 500
+
+    cursor.close()
+    return jsonify(message='Student deleted successfully'), 200
+
+
+# --- Update Student Status (admin only) ---
+@app.route('/students/<int:id>/status', methods=['PUT'])
+@jwt_required()
+def update_student_status(id):
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify(error='Admins only'), 403
+
+    data = request.get_json()
+    status = data.get('status')
+    
+    if not status:
+        return jsonify(error='Status is required'), 400
+
+    # Check if the student exists
+    cursor = mysql.connection.cursor()
+    cursor.execute('SELECT 1 FROM students WHERE id=%s', (id,))
+    if not cursor.fetchone():
+        cursor.close()
+        return jsonify(error='Student not found'), 404
+
+    # Update the status of the student
+    cursor.execute('UPDATE students SET status=%s WHERE id=%s', (status, id))
+    mysql.connection.commit()
+
+    # Record the status change in student_status_history table
+    cursor.execute(
+        'INSERT INTO student_status_history (student_id, status) VALUES (%s, %s)',
+        (id, status)
+    )
+    mysql.connection.commit()
+    cursor.close()
+
+    return jsonify(message='Student status updated and history recorded successfully'), 200
 
 
 if __name__ == '__main__':
