@@ -36,7 +36,7 @@ class _UpdateStatusScreenState extends State<UpdateStatusScreen> {
     });
 
     final url = Uri.parse(
-      'http://192.168.175.14:5000/students/${widget.studentId}/status',
+      'http://localhost:5000/students/${widget.studentId}/status',
     );
 
     try {

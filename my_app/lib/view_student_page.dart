@@ -37,7 +37,7 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
       return;
     }
 
-    final url = Uri.parse('http://192.168.175.14:5000/students'); // Your endpoint
+    final url = Uri.parse('http://localhost:5000/students'); // Your endpoint
 
     try {
       final response = await http.get(
@@ -79,7 +79,7 @@ class _ViewStudentsPageState extends State<ViewStudentsPage> {
       return;
     }
 
-    final url = Uri.parse('http://192.168.175.14:5000/students/$id');
+    final url = Uri.parse('http://localhost:5000/students/$id');
 
     try {
       final response = await http.delete(

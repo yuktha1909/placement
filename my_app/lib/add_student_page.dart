@@ -22,7 +22,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final TextEditingController _resumeLinkController = TextEditingController();
 
   Future<void> _addStudent() async {
-    final url = 'http://192.168.175.14:5000/students';
+    final url = 'http://localhost:5000/students';
 
     final response = await http.post(
       Uri.parse(url),

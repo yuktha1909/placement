@@ -49,7 +49,7 @@ class _EditStudentPageState extends State<EditStudentPage> {
       return;
     }
 
-    final url = Uri.parse('http://192.168.175.14:5000/students/$id');
+    final url = Uri.parse('http://localhost:5000/students/$id');
 
     final updatedData = {
       'name': _nameController.text,

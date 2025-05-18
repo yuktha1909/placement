@@ -16,7 +16,7 @@ class _PlacementEventsPageState extends State<PlacementEventsPage> {
 
   Future<List<dynamic>> fetchPlacementEvents() async {
     final response = await http.get(
-      Uri.parse('http://192.168.175.14:5000/placements'),
+      Uri.parse('http://localhost:5000/placements'),
       headers: {
         'Authorization':
             'Bearer ${widget.token}', // Pass JWT token for authentication

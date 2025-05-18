@@ -21,7 +21,7 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
     });
 
     final response = await http.post(
-      Uri.parse('http://192.168.175.14:5000/verify-otp'),
+      Uri.parse('http://localhost:5000/verify-otp'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': widget.email, 'otp': otpController.text}),
     );

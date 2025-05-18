@@ -23,7 +23,7 @@ class _SelectStudentPageState extends State<SelectStudentPage> {
   }
 
   Future<void> _fetchStudents() async {
-    const apiUrl = 'http://192.168.175.14:5000/students'; // Change to your deployed URL if needed
+    const apiUrl = 'http://localhost:5000/students'; // Change to your deployed URL if needed
 
     try {
       final response = await http.get(

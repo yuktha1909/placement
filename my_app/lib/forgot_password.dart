@@ -36,7 +36,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     final response = await http.post(
       Uri.parse(
-        'http://192.168.175.14:5000/forgot-password',
+        'http://localhost:5000/forgot-password',
       ), // Replace with your backend IP
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': emailController.text}),

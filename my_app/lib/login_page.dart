@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     final response = await http.post(
-      Uri.parse('http://192.168.175.14:5000/login'),
+      Uri.parse('http://localhost:5000/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': emailController.text.trim(),

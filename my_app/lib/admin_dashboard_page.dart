@@ -41,7 +41,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Future<void> _loadDashboardStats() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.175.14:5000/admin/dashboard'),
+        Uri.parse('http://localhost:5000/admin/dashboard'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
       if (response.statusCode == 200) {
@@ -67,7 +67,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     });
     try {
       final resp = await http.get(
-        Uri.parse('http://192.168.175.14:5000/placements'),
+        Uri.parse('http://localhost:5000/placements'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
       if (resp.statusCode == 200) {
@@ -94,7 +94,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Future<void> _deletePlacement(int id) async {
     try {
       final resp = await http.delete(
-        Uri.parse('http://192.168.175.14:5000/placements/$id'),
+        Uri.parse('http://localhost:5000/placements/$id'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
       if (resp.statusCode == 200) {
